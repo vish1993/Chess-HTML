@@ -1,0 +1,27 @@
+
+body{
+background-color:black;
+border-style: ridge;
+border-width: 10px;}
+
+h1 {
+font-family: Desdemona;
+color:yellow;
+text-decoration: underline;
+}
+
+p 
+{
+font-family: Tempus Sans Itc;
+color:yellow;
+}
+
+input[type=radio]
+{
+color:yellow;
+}
+
+div
+{
+display:none;
+}

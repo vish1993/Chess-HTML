@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!--
+Name: Visaahan Anandarajah
+Date: January 23, 2013
+Purpose:This is my attempt at a Chess Game using HTML, CSS, JavaScript, & jQuery.
+        Intended purpose to create a 2 player game (no AI) 
+-->
+
+<!--BASIC HTML LAYOUT - USING TABLE FOR BOARD AND IMAGES FOR PIECES-->
+<html>
+
+    <head>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js">
+        </script>
+        <link href="ChessStyle.css" type="text/css" rel="stylesheet"/>
+        <title>Vish's Chess Attempt </title>
+    </head>
+
+    <body>
+
+        <div class ="column">
+            <span class= "label">ABCDEFGH</span>
+        </div>
+        <div class = "row"> 
+            <p class="test">0</p>
+            <p class="test">1</p>
+            <p class="test">2</p>
+            <p class="test">3</p>
+            <p class="test">4</p>
+            <p class="test">5</p>
+            <p class="test">6</p>
+            <p class="test">7</p>
+        </div>
+        <span class= "update">Update: Start</span>
+        <!--<span class= "whitedeadlist">White Dead List: </span>
+        <span class= "blackdeadlist">Black Dead List: </span>-->
+        <table id="gameBoard" border="1">
+            <tbody>
+            </tbody>
+        </table>
+    </body>
+
+    <script src="Table.js"></script>
+    <script src="ChessPieces.js"></script>
+    <script src="ChessMove.js"></script>
+    <script src="ChessKill.js"></script>
+    <script src="ChessCheck.js"></script>
+
+    <script>
+
+        var obj; //this is the current object that is selected
+        var count = 0; //the # of moves
+        var gameOver = false; //whether game is over or not
+
+
+		//creates the board
+        $(document).ready (function() {
+            board.createBoard();
+        });	
+
+		//if clicked on the board
+        $("#gameBoard").click (function() {
+
+            $("td").click (function() {
+                var $this =$(this);
+				
+				//gets cell relative to board
+                var row = $(this).parent().children().index(this);
+                var column = $(this).parent().parent().children().index(this.parentNode);
+                var cellIndex = getLetter (row);
+                cellIndex+= column;
+				
+				//gets color (if its yellow we know its a valid move as determined by chess.move)
+                var color = $("." + cellIndex).css ("background-color");
+				
+				//keeps track of previous location in case move is not valid
+                var prev = (typeof (obj) !== "undefined" ? obj.location: "Null");
+
+                if (!gameOver)
+                {            
+					//if valid move
+                    if (color == "rgb(255, 255, 0)")
+                    {
+                        var isChecked = chess.incheck (obj.colour);
+						//if current player is not in check
+                        if (!isChecked)
+                        {
+							//to set up for castling - keeps track of where king and rooks would move
+							//NOTE: hard coded castling. Ideally should find a way to not hard code
+							if (obj.type == "King" && obj.castled == "no" && (Math.abs(getNumber(obj.location.charAt(0)) - row ) == 2)){
+								update(cellIndex);
+								
+								var prev_rook;
+								var new_rook;
+								
+								//if castling to your right side
+								if (cellIndex.charAt(0) == "G"){
+									if (obj.colour == "Black"){
+										prev_rook = "H0";
+										new_rook = "F0";
+										obj = chess.search ("H0");
+										update ("F0");
+										obj = chess.search ("G0");
+									}
+									if (obj.colour == "White"){
+										prev_rook = "H7";
+										new_rook = "F7";
+										obj = chess.search ("H7");
+										update ("F7");
+										obj = chess.search ("G7");
+									}
+								}
+								
+								//if castling to left side
+								else if (cellIndex.charAt(0) == "C"){
+									if (obj.colour == "Black"){
+										prev_rook = "A0";
+										new_rook = "D0";
+										obj = chess.search ("A0");
+										update ("D0");
+										obj = chess.search ("C0");
+									}
+									
+									if (obj.colour == "White"){
+										prev_rook = "A7";
+										new_rook = "D7";
+										obj = chess.search ("A7");
+										update ("D7");
+										obj = chess.search ("C7");
+									}
+								}
+								
+								
+								isChecked = chess.incheck (obj.colour);
+								
+								//if castle leaves you in check, revert back to original position
+								if (isChecked){
+									if (obj.colour == "White"){
+										update ("E7");
+									}
+									else if (obj.colour == "Black"){
+										update ("E0");
+									}
+									obj = chess.search (new_rook);
+									update (prev_rook);
+									$(".update").html ("UPDATE: Move leaves " + obj.colour + " in check");
+								}
+								
+								//else valid move, update as accordingly
+								else {
+									count++;
+									$(".update").html ("UPDATE: " + obj.colour + " king castles");
+									//change certain parameters to prevent checking again
+									for (var i = 0 ; i < chess.pieces.length; i++)
+									{
+										if (chess.pieces[i].location == obj.location && chess.pieces[i].colour == obj.colour)
+										{
+											if (chess.pieces[i].checked == "no")
+											{
+												chess.pieces[i].checked = "yes";
+											}
+										}
+									}
+								}	
+							}
+							
+							//not a castle - any other valid move
+							else {
+								$(".update").html ("UPDATE: " + obj.colour + " " +  obj.type +  " moves from " + obj.location + " to " + cellIndex + ".");
+								update (cellIndex);
+                            
+								isChecked = chess.incheck (obj.colour);
+							
+								//checks if move leaves you in check and if so takes apporpriate action
+								if (isChecked)
+								{
+									update (prev);
+									$(".update").html ("UPDATE: Move leaves " +obj.colour + " in check");
+									return;
+								}
+							
+								//else valid move update accordingly
+								else
+								{
+									count++;
+									for (var i = 0 ; i < chess.pieces.length; i++)
+									{
+										if (chess.pieces[i].location == obj.location && chess.pieces[i].colour == obj.colour)
+										{
+											//this is for pawns. If they have taken their 2 step move, prevent them from doing so again
+											if (chess.pieces[i].moved == "no")
+											{
+												chess.pieces[i].moved = "yes";
+											}
+
+											//preventing castles again
+											if ((obj.type == "Rook") || (obj.type == "King")) && chess.pieces[i].castled == "no"){
+												chess.pieces[i].castled = "yes";
+											}
+										}
+									}
+								}
+							}
+                        }
+			
+						//if you are currently in check
+                        else if (isChecked)
+                        {
+                            update(cellIndex);
+                            isChecked = chess.incheck (obj.colour);
+				
+							//if still in check after updating, not a valid move
+                            if (isChecked)
+                            {
+                                $(".update").html ("UPDATE: Move leaves " +obj.colour + " in check");
+                                update (prev);
+								return;
+                            }
+				
+							// got out of check - valid move
+                            else
+                            {
+                                $(".update").html ("UPDATE: " + obj.colour + " " +  obj.type +  " moves from " + prev + " to " + cellIndex + ".");
+                                count++;
+								//prevent pawn moving and castling
+                                for (var i = 0 ; i < chess.pieces.length; i++)
+                                {
+                                    if (chess.pieces[i].location == obj.location && chess.pieces[i].colour == obj.colour)
+                                    {
+                                        if (chess.pieces[i].moved == "no")
+                                        {
+                                            chess.pieces[i].quality = "yes";
+                                        }
+										
+										if ((obj.type == "Rook") || (obj.type == "King")) && chess.pieces[i].castled == "no"){
+											chess.pieces[i].castled = "yes";
+										}
+                                    }
+                                }
+                            }
+						}
+                     
+						//want to check if that move leaves your opponent in check and possibly checkmated
+						var oppcolour = (obj.colour == "White") ? "Black" : "White";
+                        var isFinalCheck = chess.incheck (oppcolour);
+                        var oppCheckMated = chess.checkmate (oppcolour);
+						
+						//if in check
+                        if (isFinalCheck)
+                        {
+                             $(".update").html ("Update: CHECK");
+							 //checkmate game over
+                            if (oppCheckMated)
+                            {
+                                $(".update").html ("CHECKMATE! "+ obj.colour + " wins.");
+                                gameOver = true;
+                            }
+                        }
+						
+						//statemate game over
+                        else if (oppCheckMated && !isFinalCheck)
+                        {
+                            $(".update").html ("STALEMATE! Tie game!");
+                            gameOver = true;
+                        }
+                        
+						//reset the board
+                        board.paint();
+                        board.updateBoard();
+                        $this.data ("clicked",false);
+                        
+                    }
+                 
+					//meant to select (unbinding click after event done)
+                    else if ($this.data ("clicked"))
+                    {
+                        board.paint();
+                        obj = chess.search (cellIndex);
+                        $this.data ("clicked",false);
+                        chess.move(obj);
+                    }
+					
+					//meant to select (binding click after event done)
+                    else
+                    {
+                        board.paint();
+                        obj = chess.search (cellIndex);
+						$this.data ("clicked",true);
+                        chess.move(obj);
+                    }
+                    $('td').unbind('click');
+                }
+            })		
+        });
+
+		/*this function allows a move to be registered by setting following:
+			-pieces location
+			-class cell to indicate occupied cell and now vacant cell
+		and checks if the move resulted in killing a piece
+		*/
+        function update(cellGrid)
+        {
+            $("."+ obj.location).attr("class", ""+ obj.location);
+            $("."+cellGrid).attr("class","" + cellGrid+ " occupied");
+
+            for (var i = 0; i < chess.pieces.length; i++)
+            {
+                if (chess.pieces[i].location == obj.location && chess.pieces[i].colour == obj.colour)
+                {
+                    chess.pieces[i].location = cellGrid;
+                    chess.checkkill (chess.pieces[i].location,chess.pieces[i].colour);
+                }
+            }			
+        }
+
+		//to get row letter when given #
+        function getLetter (number)
+        { 
+            var letter;
+            switch (number)
+            {
+                case 0:
+                    letter = "A";
+                    break;
+                case 1:
+                    letter = "B";
+                    break;
+                case 2:
+                    letter = "C";
+                    break;
+                case 3:
+                    letter = "D";
+                    break;
+                case 4:
+                    letter = "E";
+                    break;
+                case 5:
+                    letter = "F";
+                    break;
+                case 6:
+                    letter = "G";
+                    break;
+                case 7:
+                    letter = "H";
+                    break;
+            }
+			
+            return letter;
+        }
+        
+		//to get row # when given letter
+        function getNumber(letter) {
+            var number;
+            
+            switch (letter) {
+                case "A":
+                    number = 0;
+                    break;
+                case "B":
+                    number = 1;
+                    break;
+                case "C":
+                    number = 2;
+                    break;
+                case "D":
+                    number = 3;
+                    break;
+                case "E":
+                    number = 4;
+                    break;
+                case "F":
+                    number = 5;
+                    break;
+                case "G":
+                    number = 6;
+                    break;
+                case "H":
+                    number = 7;
+                    break;
+            }
+            return number;
+        }
+    </script>
+</html>
+
+

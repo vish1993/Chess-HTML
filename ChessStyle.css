@@ -1,0 +1,66 @@
+div.column
+{
+	position:absolute;
+	left:75px;
+	top:25px;
+}
+
+div.row
+{
+position:absolute;
+top:50px;
+}
+
+span.label
+{
+	letter-spacing:60px;
+}
+
+table
+{
+	position:absolute;
+	left: 50px;
+	top: 50px;
+}
+tr 
+{
+height:60px;
+}
+
+td
+{
+width:60px;
+}
+
+p.test
+{
+line-height:45px;
+}
+
+IMG.piece
+{
+display:block;
+margin-left:auto;
+margin-right:auto;
+}
+
+span.update
+{
+position:absolute;
+top: 20px;
+left: 700px;
+}
+
+span.whitedeadlist
+{
+position:absolute;
+top: 60px;
+left: 700px;
+}
+
+span.blackdeadlist
+{
+position:absolute;
+top: 100px;
+left: 700px;
+}
